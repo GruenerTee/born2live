@@ -49,12 +49,12 @@ def make_layer_stack(top = "Ti",xfactor = 1 ,repitons=0):
 
     return sample
 
-def make_particle_lattice_sample(radius=5*nm, height=5*nm, a=20*nm, b=20*nm, alpha=120*deg, xi=0*deg):
+def make_particle_lattice_sample(radius=5*nm, height=5*nm, ref_= 0.0006,a=20*nm, b=20*nm, alpha=120*deg, xi=0*deg):
 
-    print("Cmake_particle_with: " +str(radius)+ str(height) + str(a )+ str(b)+ str( alpha)+ str( xi))
+    print("Cmake_particle_with: /nR: " + str(radius)+ "/nh: " + str(height)+ "/nref: " + str(ref_) + "/na: " + str(a )+  "/nb: " + str(b)+"/nalph: "+ str( alpha)+ "/nxi: "+ str( xi))
     
     # Define materials
-    material_Particle = ba.RefractiveMaterial("Particle", 0.0006, 2e-08)
+    material_Particle = ba.RefractiveMaterial("Particle", ref_ , 2e-08)
     material_Substrate = ba.RefractiveMaterial("Substrate", 6e-06, 2e-08)
     material_Vacuum = ba.RefractiveMaterial("Vacuum", 0.0, 0.0)
 

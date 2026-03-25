@@ -3,6 +3,7 @@ import bornagain as ba
 from bornagain import deg, nm, angstrom
 import numpy as np
 import os
+import datetime
 import multiprocessing
 import matplotlib
 matplotlib.use('Agg')
@@ -24,12 +25,12 @@ def get_simulation2d(sample):
 def wrapper(args):
     simulate_and_create(*args)
 
-def simulate_and_create(radius, height, a, i, scenario_name, description):
+def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, path):
     plt = bp.plt
     plt.figure(figsize=(10, 6))
 
     print(f"[{scenario_name}] Sim {i:03d}: {description}")
-    sample = make_particle_lattice_sample(radius=radius, height=height, a=a, b=a)
+    sample = make_particle_lattice_sample(radius=radius, height=height, ref_ = ref,a=a, b=a)
     simulation = get_simulation2d(sample)
     result = simulation.simulate()
             
@@ -37,7 +38,8 @@ def simulate_and_create(radius, height, a, i, scenario_name, description):
     plt.title(f"{scenario_name.replace('_', ' ').title()}\n{description}")
     
     # Save in scenario-specific folder
-    out_dir = f"./sim/{scenario_name}"
+    out_dir = f"{path}{scenario_name}"
+    print (out_dir)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
         
@@ -46,11 +48,12 @@ def simulate_and_create(radius, height, a, i, scenario_name, description):
 
 if __name__ == '__main__':
     # Define baseline parameters
+    time= datetime.datetime.now()
     base_radius = 5*nm
     base_height = 4*nm
     base_lattice = 10*nm
-    n_frames = 10
-
+    n_frames = 1
+    ref_values= np.linspace(0.0001, 0.001 , n_frames)
     scenarios = {
         "varying_radius": {
             "values": np.linspace(1*nm, 8*nm, n_frames),
@@ -65,32 +68,34 @@ if __name__ == '__main__':
             "param": "a"
         }
     }
-
+    for ref in ref_values:
+        path='sim/'+ str(time.strftime("%Y-%m-%d__T%H:%MZ"))+'/'+str(ref)+'/'
     # Ensure sim directory exists
-    if not os.path.exists('sim'):
-        os.makedirs('sim')
+        if not os.path.exists(path):
+            os.makedirs(path )
 
-    all_tasks = []
-    for s_name, config in scenarios.items():
-        # Clean scenario directory
-        os.system(f"rm -rf ./sim/{s_name} ; mkdir -p ./sim/{s_name}")
-        
-        for i, val in enumerate(config["values"]):
-            print (i, val) 
-            # Setup params for this specific frame
-            params = {"radius": base_radius, "height": base_height, "a": base_lattice}
-            params[config["param"]] = val
+        all_tasks = []
+        for s_name, config in scenarios.items():
+            # Clean scenario directory
+            os.system(f"rm -rf {path}{s_name} ; mkdir -p {path}{s_name}")
             
-            desc = f"r={params['radius']/nm:.1f}nm, h={params['height']/nm:.1f}nm, a={params['a']/nm:.4f}nm"
-            all_tasks.append((params["radius"], params["height"], params["a"], i, s_name, desc))
+            for i, val in enumerate(config["values"]):
+                #print (i, val) 
+                # Setup params for this specific frame
+                params = {"radius": base_radius, "height": base_height, "a": base_lattice}
+                params[config["param"]] = val
+                
+                desc = f"r={params['radius']/nm:.1f}nm, h={params['height']/nm:.1f}nm, a={params['a']/nm:.4f}nm"
+                all_tasks.append((params["radius"], params["height"],ref, params["a"], i, s_name, desc, path))
 
-    print(f"Starting {len(all_tasks)} simulations across {len(scenarios)} scenarios...")
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as p:
-        p.map(wrapper, all_tasks)
+        print(f"Starting {len(all_tasks)} simulations across {len(scenarios)} scenarios...")
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()-1) as p:
+            p.map(wrapper, all_tasks)
 
-    print("\nGenerating videos...")
-    for s_name in scenarios.keys():
-        video_path = f"./sim/film-{s_name}.mp4"
-        cmd = f"ffmpeg -f image2 -r 8 -i ./sim/{s_name}/frame-%03d.png -vcodec mpeg4 -y {video_path}"
-        os.system(cmd)
-        print(f"Created: {video_path}")
+        print("\nGenerating videos...")
+
+        for s_name in scenarios.keys():
+            video_path = f"{path}film-{s_name}.mp4"
+            cmd = f"ffmpeg -f image2 -r 8 -i {path}{s_name}/frame-%03d.png -vcodec mpeg4 -y {video_path}"
+            os.system(cmd)
+            print(f"Created: {video_path}")
