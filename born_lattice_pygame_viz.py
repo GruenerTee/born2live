@@ -1,3 +1,7 @@
+import os
+# Set SDL to use the dummy video driver for headless rendering
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+
 import pygame
 import math
 import sys
@@ -35,8 +39,8 @@ def visualize_lattice_pygame(path, radius=5*nm, height=5*nm, a=20*nm, b=20*nm, a
     COLOR_TEXT = (255, 255, 255)
 
     pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT_WINDOW))
-    pygame.display.set_caption("BornAgain Lattice Visualization")
+    # Create an off-screen surface instead of a display window
+    screen = pygame.Surface((WIDTH, HEIGHT_WINDOW))
     font = pygame.font.SysFont('Arial', 16)
 
     # Lattice vectors
