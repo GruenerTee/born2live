@@ -9,6 +9,7 @@ import matplotlib
 matplotlib.use('Agg')
 from bornagain import ba_plot as bp
 from creat_sample_test import make_particle_lattice_sample
+from born_lattice_pygame_viz import visualize_lattice_pygame
 
 def get_simulation(sample):
     n = 500
@@ -45,6 +46,7 @@ def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, p
         
     plt.savefig(f"{out_dir}/frame-{i:03d}.png", dpi=150)
     plt.close()
+    visualize_lattice_pygame(str(out_dir)+str(i)+"-viz.png",radius=radius, height=height, a=a, b=a ) 
 
 if __name__ == '__main__':
     # Define baseline parameters
@@ -52,19 +54,19 @@ if __name__ == '__main__':
     base_radius = 5*nm
     base_height = 4*nm
     base_lattice = 10*nm
-    n_frames = 1
-    ref_values= np.linspace(0.0001, 0.001 , n_frames)
+    n_frames = 10
+    ref_values= [ 0.0006 ]  # np.linspace(0.0001, 0.001 , n_frames)
     scenarios = {
         "varying_radius": {
-            "values": np.linspace(1*nm, 8*nm, n_frames),
+            "values": np.linspace(1*nm, 5*nm, n_frames),
             "param": "radius"
         },
         "varying_height": {
-            "values":  np.linspace(1*nm, 10*nm, n_frames),
+            "values": [5*nm], # np.linspace(1*nm, 10*nm, n_frames),
             "param": "height"
         },
         "varying_lattice": {
-            "values":  np.linspace(1*nm, 150*nm, n_frames),
+            "values":  np.linspace(10*nm, 150*nm, n_frames),
             "param": "a"
         }
     }
@@ -89,13 +91,13 @@ if __name__ == '__main__':
                 all_tasks.append((params["radius"], params["height"],ref, params["a"], i, s_name, desc, path))
 
         print(f"Starting {len(all_tasks)} simulations across {len(scenarios)} scenarios...")
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()-1) as p:
+        with multiprocessing.Pool(processes=1) as p: #simulation is already 
             p.map(wrapper, all_tasks)
 
         print("\nGenerating videos...")
 
         for s_name in scenarios.keys():
             video_path = f"{path}film-{s_name}.mp4"
-            cmd = f"ffmpeg -f image2 -r 8 -i {path}{s_name}/frame-%03d.png -vcodec mpeg4 -y {video_path}"
+            cmd = f"ffmpeg -f image2 -r 8 -i {path}{s_name}/frame-%03d.png -vcodec mpeg4 -y {video_path} >/dev/null 2>&1"
             os.system(cmd)
             print(f"Created: {video_path}")
