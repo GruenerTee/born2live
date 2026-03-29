@@ -7,6 +7,7 @@ import datetime
 import multiprocessing
 import matplotlib
 matplotlib.use('Agg')
+from tqdm import tqdm
 from bornagain import ba_plot as bp
 from creat_sample_test import make_particle_lattice_sample
 from born_lattice_pygame_viz import visualize_lattice_pygame
@@ -30,7 +31,7 @@ def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, p
     plt = bp.plt
     plt.figure(figsize=(10, 6))
 
-    print(f"[{scenario_name}] Sim {i:03d}: {description}")
+    # print(f"[{scenario_name}] Sim {i:03d}: {description}")
     sample = make_particle_lattice_sample(radius=radius, height=height, ref_ = ref,a=a, b=a)
     simulation = get_simulation2d(sample)
     result = simulation.simulate()
@@ -40,7 +41,7 @@ def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, p
     
     # Save in scenario-specific folder
     out_dir = f"{path}{scenario_name}"
-    print (out_dir)
+    # print (out_dir)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
         
@@ -91,14 +92,14 @@ if __name__ == '__main__':
                 all_tasks.append((params["radius"], params["height"],ref, params["a"], i, s_name, desc, path))
 
         print(f"Starting {len(all_tasks)} simulations across {len(scenarios)} scenarios...")
-        with multiprocessing.Pool(processes=1) as p: #simulation is already 
-            p.map(wrapper, all_tasks)
+        with multiprocessing.Pool(processes=1) as p: 
+            list(tqdm(p.imap(wrapper, all_tasks), total=len(all_tasks), desc="Simulations", leave=True))
 
         print("\nGenerating videos...")
 
-        for s_name in scenarios.keys():
+        for s_name in tqdm(scenarios.keys(), desc="Video generation"):
             video_path = f"{path}film-{s_name}.mp4"
             # Combine simulation and pygame viz side-by-side, scaling them to the same height
             cmd = f"ffmpeg -r 8 -i {path}{s_name}/frame-%03d.png -r 8 -i {path}{s_name}/viz-%03d.png -filter_complex \"[0:v]scale=-1:800[v0];[1:v]scale=-1:800[v1];[v0][v1]hstack\" -vcodec mpeg4 -y {video_path} >/dev/null 2>&1"
             os.system(cmd)
-            print(f"Created: {video_path}")
+            # print(f"Created: {video_path}")

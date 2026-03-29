@@ -1,6 +1,7 @@
 import os
-# Set SDL to use the dummy video driver for headless rendering
+# Set SDL to use dummy drivers for headless rendering
 os.environ["SDL_VIDEODRIVER"] = "dummy"
+os.environ["SDL_AUDIODRIVER"] = "dummy"
 
 import pygame
 import math

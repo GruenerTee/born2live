@@ -1,7 +1,7 @@
 import bornagain as ba
 from bornagain import ba_plot as bp, deg, angstrom, nm
 
-def make_layer_stack(top = "Ti",xfactor = 1 ,repitons=0):
+def make_layer_stack(top = "Ti",xfactor = 1 ,repitons=0,verbrose=False):
     periodic =False
 
     vacuum = ba.MaterialBySLD("Vacuum", 0, 0)
@@ -20,21 +20,21 @@ def make_layer_stack(top = "Ti",xfactor = 1 ,repitons=0):
     sample.addLayer(top_layer)
     
     if top == "Ti":
-        print(top + " - " +str(xfactor*30))
+        if verbrose: print(top + " - " +str(xfactor*30))
         shrunk_layer = ba.Layer(material_Ti, xfactor*30*angstrom)
         sample.addLayer(shrunk_layer)
         sample.addLayer(ni_layer)
     elif top =='Ni':
-        print(top + " - " +str(xfactor*30))
+        if verbrose: print(top + " - " +str(xfactor*30))
         shrunk_layer = ba.Layer(material_Ni, xfactor*30*angstrom)
         sample.addLayer(shrunk_layer)
 
     else:
-        print('No top set')
+        if verbrose: print('No top set')
 
 
     for layer in range (repitons):
-        print("adding Ti-Ni-layer")
+        if verbrose: print("adding Ti-Ni-layer")
         sample.addLayer(ti_layer)
         sample.addLayer(ni_layer)
     # Periodic stack
@@ -49,9 +49,9 @@ def make_layer_stack(top = "Ti",xfactor = 1 ,repitons=0):
 
     return sample
 
-def make_particle_lattice_sample(radius=5*nm, height=5*nm, ref_= 0.0006,a=20*nm, b=20*nm, alpha=120*deg, xi=0*deg):
+def make_particle_lattice_sample(radius=5*nm, height=5*nm, ref_= 0.0006,a=20*nm, b=20*nm, alpha=120*deg, xi=0*deg, verbrose=False):
 
-    print("Cmake_particle_with: /nR: " + str(radius)+ "/nh: " + str(height)+ "/nref: " + str(ref_) + "/na: " + str(a )+  "/nb: " + str(b)+"/nalph: "+ str( alpha)+ "/nxi: "+ str( xi))
+    if verbrose: print("Cmake_particle_with: /nR: " + str(radius)+ "/nh: " + str(height)+ "/nref: " + str(ref_) + "/na: " + str(a )+  "/nb: " + str(b)+"/nalph: "+ str( alpha)+ "/nxi: "+ str( xi))
     
     # Define materials
     material_Particle = ba.RefractiveMaterial("Particle", ref_ , 2e-08)
