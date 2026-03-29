@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
+import os
+# Set SDL to use dummy drivers for headless rendering
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+os.environ["SDL_AUDIODRIVER"] = "dummy"
+
 import pygame
 import sys
 
-def draw_stack(N_REPETITIONS= 10, TOP_LAYER='TI' ,FACTOR=1, SIM_NUMBER=1):
+def draw_stack(N_REPETITIONS= 10, TOP_LAYER='TI' ,FACTOR=1, SIM_NUMBER=1, path='./sim/'):
     # --- Configuration ---
     SCALE = 0.5 # 1 Angstrom = 4 pixels (adjust for visibility)
     TI_THICKNESS = 30  # Angstroms
@@ -68,32 +73,13 @@ def draw_stack(N_REPETITIONS= 10, TOP_LAYER='TI' ,FACTOR=1, SIM_NUMBER=1):
     screen.blit(font.render("Si Substrate", True, (255, 255, 255)), (10, current_y + 10))
 
     # Save the rendered image
-    output_filename = "layer_stack_viz-"+f"{SIM_NUMBER:02d}"+".png"
-    pygame.image.save(screen, './sim/'+output_filename)
-    print(f"Visualization saved as {output_filename}")
-
-    # Display in a window
-    
-    
-    # Simple loop to show the image
-    running = False
-    if running:
-        display_screen = pygame.display.set_mode((width_px, min(total_height_px, 900)))
-        pygame.display.set_caption("BornAgain Layer Stack Visualization")
-    offset_y = 0
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP: offset_y += 20
-                if event.key == pygame.K_DOWN: offset_y -= 20
-
-        display_screen.fill((255, 255, 255))
-        display_screen.blit(screen, (0, offset_y))
-        pygame.display.flip()
+    output_filename = f"viz-{SIM_NUMBER:03d}.png"
+    full_path = os.path.join(path, output_filename)
+    pygame.image.save(screen, full_path)
+    # print(f"Visualization saved as {full_path}")
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     draw_stack(0, 'NI')
