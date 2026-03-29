@@ -46,7 +46,7 @@ def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, p
         
     plt.savefig(f"{out_dir}/frame-{i:03d}.png", dpi=150)
     plt.close()
-    visualize_lattice_pygame(str(out_dir)+str(i)+"-viz.png",radius=radius, height=height, a=a, b=a ) 
+    visualize_lattice_pygame(f"{out_dir}/viz-{i:03d}.png", radius=radius, height=height, a=a, b=a)
 
 if __name__ == '__main__':
     # Define baseline parameters
@@ -98,6 +98,7 @@ if __name__ == '__main__':
 
         for s_name in scenarios.keys():
             video_path = f"{path}film-{s_name}.mp4"
-            cmd = f"ffmpeg -f image2 -r 8 -i {path}{s_name}/frame-%03d.png -vcodec mpeg4 -y {video_path} >/dev/null 2>&1"
+            # Combine simulation and pygame viz side-by-side, scaling them to the same height
+            cmd = f"ffmpeg -r 8 -i {path}{s_name}/frame-%03d.png -r 8 -i {path}{s_name}/viz-%03d.png -filter_complex \"[0:v]scale=-1:800[v0];[1:v]scale=-1:800[v1];[v0][v1]hstack\" -vcodec mpeg4 -y {video_path} >/dev/null 2>&1"
             os.system(cmd)
             print(f"Created: {video_path}")
