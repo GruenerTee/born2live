@@ -4,42 +4,31 @@ from bornagain import deg, nm, angstrom
 import numpy as np
 import os
 import datetime
-import multiprocessing
 import matplotlib
 matplotlib.use('Agg')
 from tqdm import tqdm
 from bornagain import ba_plot as bp
 from bornagain.numpyutil import Arrayf64Converter as dac
-from creat_sample_test import make_particle_lattice_sample
+from physics_models import LatticeModel, SimulationEngine
 from born_lattice_pygame_viz import visualize_lattice_pygame
 from ai_data_utils import export_sample, load_dataset
-
-def get_simulation(sample):
-    n = 500
-    scan = ba.AlphaScan(n, 2*deg/n, 2*deg)
-    scan.setWavelength(1.54*angstrom)
-    return ba.SpecularSimulation(scan, sample)
-def get_simulation2d(sample):
-    beam = ba.Beam(1e9, 0.1*nm, 0.2*deg)
-    n = 200
-    detector = ba.SphericalDetector(n, -2*deg, 2*deg, n, 0, 3*deg)
-    simulation = ba.ScatteringSimulation(beam, sample, detector)
-    return simulation
+from viz.movie_maker import MovieMaker
 
 def wrapper(args):
     simulate_and_create(*args)
 
-def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, path):
+def simulate_and_create(radius, height, ref, a, i, scenario_name, description, path):
     plt = bp.plt
     plt.figure(figsize=(10, 6))
 
-    # print(f"[{scenario_name}] Sim {i:03d}: {description}")
-    sample = make_particle_lattice_sample(radius=radius, height=height, ref_ = ref,a=a, b=a)
-    simulation = get_simulation2d(sample)
-    result = simulation.simulate()
+    # Initialize the OOP Model
+    model = LatticeModel(radius=radius, height=height, a=a, b=a, ref_idx=ref)
+    sample = model.create_sample()
+    
+    # Run Simulation through Engine (using 200x200 resolution as before)
+    result = SimulationEngine.run_scattering_2d(sample, n_pixels=200)
     
     # Export for AI training
-    # Explicitly casting to float to ensure we don't pass any Swig-wrapped numbers
     params = {
         "radius": float(radius/nm), 
         "height": float(height/nm), 
@@ -47,108 +36,79 @@ def simulate_and_create(radius, height, ref ,a, i, scenario_name, description, p
         "ref": float(ref)
     }
     dataset_path = os.path.join(path, "simulation_dataset.npz")
-    # Using dac.asNpArray() on result.dataArray() creates a picklable numpy array
     export_sample(dac.asNpArray(result.dataArray()), params, dataset_path)
             
     bp.plot_datafield(result)
     plt.title(f"{scenario_name.replace('_', ' ').title()}\n{description}")
     
-    # Save in scenario-specific folder
     out_dir = f"{path}{scenario_name}"
-    # print (out_dir)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
         
     plt.savefig(f"{out_dir}/frame-{i:03d}.png", dpi=150)
     plt.close()
-    visualize_lattice_pygame(f"{out_dir}/viz-{i:03d}.png", radius=radius, height=height, a=a, b=a)
+    
+    # Pass parameters directly from model to visualization
+    visualize_lattice_pygame(f"{out_dir}/viz-{i:03d}.png", 
+                             radius=model.radius, height=model.height, 
+                             a=model.a, b=model.b)
 
 if __name__ == '__main__':
     # Define baseline parameters
-    time= datetime.datetime.now()
+    time = datetime.datetime.now()
     base_radius = 5*nm
     base_height = 4*nm
     base_lattice = 10*nm
     n_frames = 10
-    ref_values= [ 0.0006 ]  # np.linspace(0.0001, 0.001 , n_frames)
+    ref_values = [0.0006]
 
-    # Dictionary of all available scenarios
-    # A scenario can change one or more parameters over n_frames
     all_scenarios = {
-        "varying_radius": {
-            "radius": np.linspace(1*nm, 5*nm, n_frames),
-        },
-        "varying_height": {
-            "height": np.linspace(1*nm, 10*nm, n_frames),
-        },
-        "varying_lattice": {
-            "a": np.linspace(10*nm, 150*nm, n_frames),
-        },
+        "varying_radius": {"radius": np.linspace(1*nm, 5*nm, n_frames)},
+        "varying_height": {"height": np.linspace(1*nm, 10*nm, n_frames)},
+        "varying_lattice": {"a": np.linspace(10*nm, 150*nm, n_frames)},
         "radius_and_height": {
             "radius": np.linspace(1*nm, 7*nm, n_frames),
             "height": np.linspace(1*nm, 15*nm, n_frames),
-        },
-        "radius_and_lattice": {
-            "radius": np.linspace(1*nm, 8*nm, n_frames),
-            "a": np.linspace(10*nm, 100*nm, n_frames),
         }
     }
     
-    n_frames = 3
-    # --- CONTROL PANEL: Select which scenarios to run ---
-    # List the keys from all_scenarios that you want to simulate
+    # Simulation settings
     active_scenario_names = ["radius_and_height"]
-    # ----------------------------------------------------
+    n_frames_to_run = 3 # Overriding n_frames for a quick test as before
 
     for ref in ref_values:
-        path='sim/'+ str(time.strftime("%Y-%m-%d__T%H:%MZ"))+'/'+str(ref)+'/'
-    # Ensure sim directory exists
+        path = 'sim/' + str(time.strftime("%Y-%m-%d__T%H:%MZ")) + '/' + str(ref) + '/'
         if not os.path.exists(path):
-            os.makedirs(path )
+            os.makedirs(path)
 
         all_tasks = []
         for s_name in active_scenario_names:
             config = all_scenarios[s_name]
-            # Clean scenario directory
             os.system(f"rm -rf {path}{s_name} ; mkdir -p {path}{s_name}")
             
-            # For each frame i, determine the parameters
-            for i in range(n_frames):
-                # Setup params for this specific frame starting with baselines
+            for i in range(n_frames_to_run):
                 params = {"radius": base_radius, "height": base_height, "a": base_lattice}
-                
-                # Update with scenario-specific values for this frame
                 for param_name, values in config.items():
-                    if len(values) == 1:
-                        params[param_name] = values[0]
-                    else:
-                        params[param_name] = values[i]
+                    params[param_name] = values[i]
                 
                 desc = f"r={params['radius']/nm:.1f}nm, h={params['height']/nm:.1f}nm, a={params['a']/nm:.4f}nm"
                 all_tasks.append((params["radius"], params["height"], ref, params["a"], i, s_name, desc, path))
 
         print(f"Starting {len(all_tasks)} simulations across {len(active_scenario_names)} scenarios...")
-        # Use a simple loop instead of multiprocessing to avoid Swig pickling issues
         for task in tqdm(all_tasks, desc="Simulations"):
             wrapper(task)
 
         print("\nGenerating videos...")
-
+        mm = MovieMaker(frame_rate=8, height=800)
         for s_name in tqdm(active_scenario_names, desc="Video generation"):
             video_path = f"{path}film-{s_name}.mp4"
-            # Combine simulation and pygame viz side-by-side, scaling them to the same height
-            cmd = f"ffmpeg -r 8 -i {path}{s_name}/frame-%03d.png -r 8 -i {path}{s_name}/viz-%03d.png -filter_complex \"[0:v]scale=-1:800[v0];[1:v]scale=-1:800[v1];[v0][v1]hstack\" -vcodec mpeg4 -y {video_path} >/dev/null 2>&1"
-            os.system(cmd)
+            mm.create_side_by_side(f"{path}{s_name}", video_path)
             print(f"Created: {video_path}")
 
-        # --- AI DATASET VERIFICATION ---
+        # Dataset verification
         print("\nVerifying AI Dataset...")
         dataset_path = os.path.join(path, "simulation_dataset.npz")
-        # Load with an extra parameter 'xi' (not saved) to test padding with 0.0
-        target_keys = ["radius", "height", "a", "ref", "xi"]
-        X, Y = load_dataset(dataset_path, target_keys)
-        print(f"Loaded dataset from {dataset_path}")
-        print(f"X (Images) shape: {X.shape}")
-        print(f"Y (Params) shape: {Y.shape}")
-        print(f"First sample parameters (Note padded 'xi' at index 4): \n{Y[0]}")
-        # -------------------------------
+        if os.path.exists(dataset_path):
+            target_keys = ["radius", "height", "a", "ref", "xi"]
+            X, Y = load_dataset(dataset_path, target_keys)
+            print(f"X (Images) shape: {X.shape}, Y (Params) shape: {Y.shape}")
