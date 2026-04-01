@@ -11,7 +11,7 @@ def train_large_scale():
     dataset_dir = "large_dataset"
     model_output = "trained_10k_model.pth"
     # These must match the keys saved in generate_10k_dataset.py
-    target_keys = ["a", "b", "radius", "height", "alpha", "xi"]
+    target_keys = ["a", "radius", "height"]
     
     batch_size = 32
     epochs = 50

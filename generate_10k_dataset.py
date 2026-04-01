@@ -10,7 +10,12 @@ from creat_sample_test import make_particle_lattice_sample
 
 def run_simulation(params):
     """Worker function for a single simulation."""
-    idx, a, b, radius, height, alpha, xi = params
+    idx, a, radius, height = params
+    
+    # Fixed parameters
+    b = a
+    alpha = 120.0
+    xi = 0.0
     
     try:
         # Create sample
@@ -38,11 +43,8 @@ def run_simulation(params):
         # Return data and parameter dict
         p_dict = {
             "a": a, 
-            "b": b, 
             "radius": radius, 
-            "height": height, 
-            "alpha": alpha, 
-            "xi": xi
+            "height": height
         }
         return data, p_dict
     except Exception as e:
@@ -51,7 +53,7 @@ def run_simulation(params):
 
 def main():
     # --- CONFIGURATION ---
-    N_TOTAL = 10000
+    N_TOTAL = 1000
     CHUNK_SIZE = 500
     OUTPUT_DIR = "large_dataset"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -61,19 +63,16 @@ def main():
     # 1. Pre-generate all random parameters
     all_tasks = []
     for i in range(N_TOTAL):
-        # Lattice constants
+        # Lattice constants (b=a)
         a = np.random.uniform(10, 100)
-        b = np.random.uniform(10, 100)
         
         # Constraint: radius up to half of lattice constant (with 5% safety margin)
-        max_r = min(a, b) / 2.0 * 0.95
+        max_r = a / 2.0 * 0.95
         radius = np.random.uniform(1, max_r)
         
         height = np.random.uniform(1, 20)
-        alpha = np.random.uniform(60, 120)
-        xi = np.random.uniform(0, 90)
         
-        all_tasks.append((i, a, b, radius, height, alpha, xi))
+        all_tasks.append((i, a, radius, height))
         
     # 2. Process in chunks to save memory and progress
     for chunk_start in range(0, N_TOTAL, CHUNK_SIZE):

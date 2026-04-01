@@ -10,7 +10,7 @@ from bornagain.numpyutil import Arrayf64Converter as dac
 class StructurePredictor:
     """Utility class for predicting physical parameters from scattering data."""
     def __init__(self, model_path="trained_10k_model.pth"):
-        self.target_keys = ["radius", "height", "a", "b", "alpha", "xi"]
+        self.target_keys = ["a", "radius", "height"]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Load Model

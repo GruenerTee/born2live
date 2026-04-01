@@ -45,8 +45,7 @@ def visualize_random_samples(dataset_dir="large_dataset", n_samples=6):
         # Create a title with the parameters
         title_str = (
             f"Chunk: {os.path.basename(chunk_name)} [Idx {idx}]\n"
-            f"r={p_dict['radius']:.1f}, h={p_dict['height']:.1f}, a={p_dict['a']:.1f}\n"
-            f"alpha={p_dict['alpha']:.1f}, xi={p_dict['xi']:.1f}"
+            f"r={p_dict['radius']:.1f}, h={p_dict['height']:.1f}, a={p_dict['a']:.1f}"
         )
         ax.set_title(title_str, fontsize=10)
         ax.axis('off')
