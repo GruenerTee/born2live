@@ -1,0 +1,6 @@
+
+The fiels for gisax cbf
+nexus giwax
+ beam 12 kev
+0.104 nm
+1600 xx 400 

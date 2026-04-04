@@ -49,17 +49,34 @@ def make_layer_stack(top = "Ti",xfactor = 1 ,repitons=0,verbrose=False):
 
     return sample
 
-def make_particle_lattice_sample(radius=5*nm, height=5*nm, ref_= 0.0006,a=20*nm, b=20*nm, alpha=120*deg, xi=0*deg, verbrose=False):
-
-    if verbrose: print("Cmake_particle_with: /nR: " + str(radius)+ "/nh: " + str(height)+ "/nref: " + str(ref_) + "/na: " + str(a )+  "/nb: " + str(b)+"/nalph: "+ str( alpha)+ "/nxi: "+ str( xi))
+def make_particle_lattice_sample(radius=5*nm, height=5*nm, ref_= 0.0006, a=20*nm, b=20*nm, alpha=120*deg, xi=0*deg, shape="cylinder", verbrose=False):
+    """
+    Creates a sample with a 2D lattice of particles.
+    Supported shapes: 'cylinder', 'sphere', 'box', 'cone'
+    """
+    if verbrose: 
+        print(f"Creating {shape} lattice with:")
+        print(f"R: {radius}, H: {height}, a: {a}, b: {b}, alpha: {alpha}")
     
     # Define materials
     material_Particle = ba.RefractiveMaterial("Particle", ref_ , 2e-08)
     material_Substrate = ba.RefractiveMaterial("Substrate", 6e-06, 2e-08)
     material_Vacuum = ba.RefractiveMaterial("Vacuum", 0.0, 0.0)
 
-    # Define form factors
-    ff = ba.Cylinder(radius, height)
+    # Define form factors based on requested shape
+    if shape.lower() == "cylinder":
+        ff = ba.Cylinder(radius, height)
+    elif shape.lower() == "sphere":
+        ff = ba.Sphere(radius)
+    elif shape.lower() == "box":
+        # Using radius for half-width/length to keep scale consistent
+        ff = ba.Box(radius*2, radius*2, height)
+    elif shape.lower() == "cone":
+        # Cone(radius, height, alpha)
+        ff = ba.Cone(radius, height, 80*deg)
+    else:
+        print(f"Unknown shape '{shape}', defaulting to Cylinder")
+        ff = ba.Cylinder(radius, height)
 
     # Define particles
     particle = ba.Particle(material_Particle, ff)

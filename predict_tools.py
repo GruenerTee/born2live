@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import os
 from ai.model import ScatteringCNN
+from ai.trainer import REV_SHAPE_MAP
 from physics_models import LatticeModel, SimulationEngine
 from bornagain import nm, deg
 from bornagain.numpyutil import Arrayf64Converter as dac
@@ -14,7 +15,7 @@ class StructurePredictor:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         # Load Model
-        self.model = ScatteringCNN(num_outputs=len(self.target_keys)).to(self.device)
+        self.model = ScatteringCNN(num_reg_outputs=len(self.target_keys)).to(self.device)
         if os.path.exists(model_path):
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             self.model.eval()
@@ -45,9 +46,13 @@ class StructurePredictor:
         input_tensor = self._preprocess(img_data)
         
         with torch.no_grad():
-            prediction = self.model(input_tensor).cpu().numpy()[0]
+            pred_reg, pred_cls = self.model(input_tensor)
+            prediction = pred_reg.cpu().numpy()[0]
+            predicted_class_idx = torch.argmax(pred_cls, dim=1).item()
+            predicted_shape = REV_SHAPE_MAP.get(predicted_class_idx, "unknown")
             
         print("--- AI Prediction Results ---")
+        print(f"Predicted Shape: {predicted_shape}")
         for i, key in enumerate(self.target_keys):
             print(f"{key:10s}: {prediction[i]:.4f}")
         return prediction
@@ -68,9 +73,13 @@ class StructurePredictor:
             input_tensor = self._preprocess(img_data)
             
             with torch.no_grad():
-                prediction = self.model(input_tensor).cpu().numpy()[0]
+                pred_reg, pred_cls = self.model(input_tensor)
+                prediction = pred_reg.cpu().numpy()[0]
+                predicted_class_idx = torch.argmax(pred_cls, dim=1).item()
+                predicted_shape = REV_SHAPE_MAP.get(predicted_class_idx, "unknown")
                 
             print("--- AI Prediction Results ---")
+            print(f"Predicted Shape: {predicted_shape}")
             for i, key in enumerate(self.target_keys):
                 print(f"{key:10s}: {prediction[i]:.4f}")
             return prediction

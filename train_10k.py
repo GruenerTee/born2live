@@ -52,7 +52,7 @@ def train_large_scale():
 
     # 4. Initialize Model and Trainer
     # Input channel is 1 (grayscale scattering image)
-    model = ScatteringCNN(num_outputs=len(target_keys))
+    model = ScatteringCNN(num_reg_outputs=len(target_keys))
     trainer = ModelTrainer(model, lr=learning_rate)
     
     # 5. Execute Training
