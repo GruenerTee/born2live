@@ -95,15 +95,15 @@ def calculate_metrics(r, h, a, shape):
         "consistency": consistency
     }
 
-def run_test(verbose=False, n_tests=3):
+def run_test(verbose=False, n_tests=3, n_samples=100):
     dataset_path = "mini_test_dataset.npz"
     target_keys = ["radius", "height", "a"]
     
     # 1. Generate data
-    generate_mini_dataset(dataset_path, n_samples=100)
+    generate_mini_dataset(dataset_path, n_samples=n_samples)
     
     # 2. Train model (Quickly)
-    print("\nTraining Multi-Task Hybrid model (CNN + Peak Features)...")
+    print(f"\nTraining Multi-Task Hybrid model with {n_samples} samples...")
     model = train_model(dataset_path, target_keys, epochs=100, batch_size=4, verbose=verbose)
     
     if model is None:
@@ -145,7 +145,7 @@ def run_test(verbose=False, n_tests=3):
         img_tensor = torch.log1p(img_tensor) # LOG SCALE
         if img_tensor.max() > 0:
             img_tensor /= img_tensor.max()
-            
+        
         peak_tensor = peak_tensor.to(device)
             
         with torch.no_grad():
@@ -188,12 +188,21 @@ def run_test(verbose=False, n_tests=3):
         print(f"{'Metric':15s} | {'Target':10s} | {'Predicted':10s} | {'Error %':10s}")
         print(f"{'-'*75}")
         
+        # Primary Parameters
         for i, key in enumerate(target_keys):
             t_val = [test_r, test_h, test_a][i]
             p_val = [p_r, p_h, p_a][i]
             err = abs(t_val - p_val) / t_val * 100
             print(f"{key:15s} | {t_val:10.2f} | {p_val:10.2f} | {err:9.1f}%")
         
+        print(f"{'-'*75}")
+        # Derived Ratios
+        for key in ["aspect_ratio", "filling_factor", "overlap_ratio"]:
+            t_val = target_m[key]
+            p_val = pred_m[key]
+            err = abs(t_val - p_val) / t_val * 100 if t_val > 0 else 0
+            print(f"{key:15s} | {t_val:10.3f} | {p_val:10.3f} | {err:9.1f}%")
+
         print(f"{'-'*75}")
         print(f"IMAGE MATCH R^2 SCORE (Log-Scale): {r2_score*100:6.2f}%")
         print(f"{'-'*75}")
@@ -210,5 +219,8 @@ def run_test(verbose=False, n_tests=3):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test AI with Validation Simulations.")
     parser.add_argument("--verbose", action="store_true", help="Show dataflow.")
+    parser.add_argument("--samples", type=int, default=100, help="Number of training samples (e.g., 2000).")
+    parser.add_argument("--tests", type=int, default=3, help="Number of tests to run.")
     args = parser.parse_args()
-    run_test(verbose=args.verbose)
+    
+    run_test(verbose=args.verbose, n_tests=args.tests, n_samples=args.samples)
