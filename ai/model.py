@@ -12,7 +12,7 @@ class ScatteringCNN(nn.Module):
         super(ScatteringCNN, self).__init__()
         self.verbose = verbose
         
-        # Shared Feature Extractor
+        # Shared Feature Extractor (CNN)
         self.conv = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -28,7 +28,19 @@ class ScatteringCNN(nn.Module):
         )
         
         self.adaptive_pool = nn.AdaptiveAvgPool2d((8, 8))
-        self.feature_size = 64 * 8 * 8
+        self.cnn_feature_size = 64 * 8 * 8
+        
+        # Peak Coordinates Processor (Hybrid Input)
+        # 10 peaks * 2 (x,y) coordinates = 20 inputs
+        self.peak_fc = nn.Sequential(
+            nn.Linear(20, 32),
+            nn.ReLU(),
+            nn.Linear(32, 64),
+            nn.ReLU()
+        )
+        
+        # Combined feature size (CNN + Peaks)
+        self.feature_size = self.cnn_feature_size + 64
         
         # Task 1: Regression Head (Physical Parameters)
         self.regression_head = nn.Sequential(
@@ -45,17 +57,28 @@ class ScatteringCNN(nn.Module):
             nn.Linear(64, num_classes)
         )
         
-    def forward(self, x):
+    def forward(self, img, peaks=None):
         if self.verbose:
             print(f"--- Dataflow Verbose ---")
-            print(f"Input shape: {x.shape}")
+            print(f"Input image shape: {img.shape}")
         
-        features = self.conv(x)
-        features = self.adaptive_pool(features)
-        features = features.view(features.size(0), -1)
+        # Process image
+        cnn_features = self.conv(img)
+        cnn_features = self.adaptive_pool(cnn_features)
+        cnn_features = cnn_features.view(cnn_features.size(0), -1)
+        
+        # Process peaks (if provided)
+        if peaks is not None:
+            peak_features = self.peak_fc(peaks)
+        else:
+            # Fallback if peaks are missing (all zeros)
+            peak_features = torch.zeros(img.size(0), 64).to(img.device)
+            
+        # Concatenate Features
+        features = torch.cat((cnn_features, peak_features), dim=1)
         
         if self.verbose:
-            print(f"Features size: {features.shape}")
+            print(f"Combined features size: {features.shape}")
             
         reg_output = self.regression_head(features)
         cls_output = self.classification_head(features)

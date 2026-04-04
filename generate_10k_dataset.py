@@ -37,6 +37,22 @@ def run_simulation(params):
         # Run Simulation
         result = simulation.simulate()
         
+        # --- Peak Finding ---
+        # Find top peaks in the scattering pattern
+        # sigma=2, threshold=0.001
+        found_peaks = ba.FindPeaks(result, 2, "nomarkov", 0.001)
+        
+        # Extract (x, y) coordinates and pad/truncate to exactly 10 peaks (20 values)
+        peak_coords = []
+        for p in found_peaks:
+            peak_coords.extend([p[0], p[1]])
+        
+        # Ensure fixed size of 20 (10 peaks * 2 coords)
+        if len(peak_coords) < 20:
+            peak_coords.extend([0.0] * (20 - len(peak_coords)))
+        else:
+            peak_coords = peak_coords[:20]
+            
         # Convert to numpy (detached from Swig)
         data = dac.asNpArray(result.dataArray()).copy()
         
@@ -44,7 +60,8 @@ def run_simulation(params):
         p_dict = {
             "a": a, 
             "radius": radius, 
-            "height": height
+            "height": height,
+            "peaks": np.array(peak_coords, dtype=np.float32)
         }
         return data, p_dict
     except Exception as e:
