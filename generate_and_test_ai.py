@@ -140,10 +140,13 @@ def run_test(verbose=False, n_tests=3):
         peak_tensor, _ = extract_peaks_as_tensor(result_target)
 
         # 5. AI Inference
-        img_tensor = torch.FloatTensor(img_target).unsqueeze(0).unsqueeze(0)
+        device = next(model.parameters()).device
+        img_tensor = torch.FloatTensor(img_target).unsqueeze(0).unsqueeze(0).to(device)
         img_tensor = torch.log1p(img_tensor) # LOG SCALE
         if img_tensor.max() > 0:
             img_tensor /= img_tensor.max()
+            
+        peak_tensor = peak_tensor.to(device)
             
         with torch.no_grad():
             pred_reg, pred_cls = model(img_tensor, peak_tensor)

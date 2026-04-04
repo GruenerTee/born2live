@@ -76,12 +76,10 @@ class ModelTrainer:
         print(f"Starting training on {self.device}...")
         for epoch in range(epochs):
             self.model.train()
-            total_loss = 0
+            train_loss = 0
             for images, targets_reg, targets_cls, peaks in train_loader:
-                images = images.to(self.device)
-                targets_reg = targets_reg.to(self.device)
-                targets_cls = targets_cls.to(self.device)
-                peaks = peaks.to(self.device)
+                images, targets_reg = images.to(self.device), targets_reg.to(self.device)
+                targets_cls, peaks = targets_cls.to(self.device), peaks.to(self.device)
                 
                 self.optimizer.zero_grad()
                 outputs_reg, outputs_cls = self.model(images, peaks)
@@ -92,9 +90,22 @@ class ModelTrainer:
                 loss = loss_reg + loss_cls
                 loss.backward()
                 self.optimizer.step()
-                total_loss += loss.item()
+                train_loss += loss.item()
+            
+            # Validation Pass
+            self.model.eval()
+            val_loss = 0
+            with torch.no_grad():
+                for images, targets_reg, targets_cls, peaks in val_loader:
+                    images, targets_reg = images.to(self.device), targets_reg.to(self.device)
+                    targets_cls, peaks = targets_cls.to(self.device), peaks.to(self.device)
+                    
+                    outputs_reg, outputs_cls = self.model(images, peaks)
+                    loss_reg = self.criterion_reg(outputs_reg, targets_reg)
+                    loss_cls = self.criterion_cls(outputs_cls, targets_cls)
+                    val_loss += (loss_reg + loss_cls).item()
                 
-            print(f"Epoch {epoch+1}/{epochs} | Loss: {total_loss/len(train_loader):.6f}")
+            print(f"Epoch {epoch+1:02d}/{epochs} | Train Loss: {train_loss/len(train_loader):.6f} | Val Loss: {val_loss/len(val_loader):.6f}")
 
     def save(self, path):
         # Save both model weights and normalization stats
