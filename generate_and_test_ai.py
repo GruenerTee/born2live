@@ -152,7 +152,7 @@ def run_test(verbose=False, n_tests=3):
             pred_reg, pred_cls = model(img_tensor, peak_tensor)
             
         # De-normalize predicted regression values
-        p_reg_standardized = pred_reg.numpy()[0]
+        p_reg_standardized = pred_reg.cpu().numpy()[0]
         p_reg_physical = (p_reg_standardized * reg_std) + reg_mean
         p_r, p_h, p_a = map(float, p_reg_physical)
         
