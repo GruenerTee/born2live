@@ -34,6 +34,9 @@ def run_simulation(params):
         detector = ba.SphericalDetector(n_pixels, -2*deg, 2*deg, n_pixels, 0, 3*deg)
         simulation = ba.ScatteringSimulation(beam, sample, detector)
         
+        # Limit to 1 thread per process to allow efficient multiprocessing
+        simulation.options().setNumberOfThreads(1)
+        
         # Run Simulation
         result = simulation.simulate()
         
@@ -69,9 +72,14 @@ def run_simulation(params):
         return None
 
 def main():
-    # --- CONFIGURATION ---
-    N_TOTAL = 1000
-    CHUNK_SIZE = 500
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate BornAgain scattering dataset.")
+    parser.add_argument("--n_total", type=int, default=1000, help="Total number of samples to generate")
+    parser.add_argument("--chunk_size", type=int, default=500, help="Samples per file chunk")
+    args = parser.parse_args()
+
+    N_TOTAL = args.n_total
+    CHUNK_SIZE = args.chunk_size
     OUTPUT_DIR = "large_dataset"
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
@@ -107,8 +115,8 @@ def main():
         chunk_Y = []
         
         # Using parallel processing
-        n_procs = 1  # multiprocessing.cpu_count() - 1
-        with multiprocessing.Pool(processes=n_procs) as pool:
+        n_procs = multiprocessing.cpu_count() - 1
+        with multiprocessing.Pool(processes=max(1, n_procs)) as pool:
             results = list(tqdm(pool.imap(run_simulation, chunk_tasks), total=len(chunk_tasks), desc=f"Chunk {chunk_idx}"))
             
         for res in results:

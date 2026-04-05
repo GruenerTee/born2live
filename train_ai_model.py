@@ -9,7 +9,7 @@ from ai.trainer import ModelTrainer, BornAgainDataset
 
 def train_model(dataset_path, target_keys, epochs=10, batch_size=4, lr=0.001, verbose=False):
     """
-    Main training function that can be called from other scripts.
+    Main training function that returns both model and trainer.
     """
     print(f"Loading dataset: {dataset_path}")
     
@@ -17,7 +17,7 @@ def train_model(dataset_path, target_keys, epochs=10, batch_size=4, lr=0.001, ve
     dataset = BornAgainDataset(dataset_path, target_keys)
     if len(dataset) < 2:
         print("Not enough samples for training.")
-        return None
+        return None, None
         
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
@@ -33,7 +33,7 @@ def train_model(dataset_path, target_keys, epochs=10, batch_size=4, lr=0.001, ve
     # 3. Run Training
     trainer.train(train_loader, val_loader, epochs=epochs)
     
-    return model
+    return model, trainer
 
 def main():
     parser = argparse.ArgumentParser(description="Train the BornAgain AI model.")
@@ -42,11 +42,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=4, help="Batch size for training.")
     args = parser.parse_args()
     
-    # --- CONFIGURATION ---
-    # Search for any simulation_dataset.npz in the sim/ directory
+    # ... (dataset search logic remains same) ...
     npz_files = glob.glob("sim/**/simulation_dataset.npz", recursive=True)
-    
-    # Also check current directory for any .npz files if none found in sim/
     if not npz_files:
         npz_files = glob.glob("*.npz")
     
@@ -54,11 +51,11 @@ def main():
         print("No .npz dataset found. Run a simulation first.")
         return
 
-    dataset_path = npz_files[0] # Take the first one found
+    dataset_path = npz_files[0]
     target_keys = ["radius", "height", "a", "ref"]
     
     # Run Training
-    model = train_model(
+    model, trainer = train_model(
         dataset_path, 
         target_keys, 
         epochs=args.epochs, 
@@ -67,10 +64,10 @@ def main():
     )
     
     # 4. Save
-    if model:
+    if trainer:
         save_path = "bornagain_ai_model_final.pth"
-        torch.save(model.state_dict(), save_path)
-        print(f"Model saved to {save_path}")
+        trainer.save(save_path)
+
 
 if __name__ == "__main__":
     main()

@@ -95,16 +95,16 @@ def calculate_metrics(r, h, a, shape):
         "consistency": consistency
     }
 
-def run_test(verbose=False, n_tests=3, n_samples=100):
+def run_test(verbose=False, n_tests=3, n_samples=100, epochs=50, batch_size=32):
     dataset_path = "mini_test_dataset.npz"
     target_keys = ["radius", "height", "a"]
     
     # 1. Generate data
     generate_mini_dataset(dataset_path, n_samples=n_samples)
     
-    # 2. Train model (Quickly)
-    print(f"\nTraining Multi-Task Hybrid model with {n_samples} samples...")
-    model = train_model(dataset_path, target_keys, epochs=100, batch_size=4, verbose=verbose)
+    # 2. Train model
+    print(f"\nTraining Multi-Task Hybrid model with {n_samples} samples, {epochs} epochs, batch {batch_size}...")
+    model, _ = train_model(dataset_path, target_keys, epochs=epochs, batch_size=batch_size, verbose=verbose)
     
     if model is None:
         return
@@ -219,8 +219,16 @@ def run_test(verbose=False, n_tests=3, n_samples=100):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test AI with Validation Simulations.")
     parser.add_argument("--verbose", action="store_true", help="Show dataflow.")
-    parser.add_argument("--samples", type=int, default=100, help="Number of training samples (e.g., 2000).")
+    parser.add_argument("--samples", type=int, default=100, help="Number of training samples.")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs.")
+    parser.add_argument("--batch", type=int, default=32, help="Batch size for training.")
     parser.add_argument("--tests", type=int, default=3, help="Number of tests to run.")
     args = parser.parse_args()
     
-    run_test(verbose=args.verbose, n_tests=args.tests, n_samples=args.samples)
+    run_test(
+        verbose=args.verbose, 
+        n_tests=args.tests, 
+        n_samples=args.samples, 
+        epochs=args.epochs, 
+        batch_size=args.batch
+    )
