@@ -145,4 +145,10 @@ def run_comparison(n_samples=300, epochs=15):
         print("-" * 85)
 
 if __name__ == "__main__":
-    run_comparison()
+    import argparse
+    parser = argparse.ArgumentParser(description="Compare Absolute vs Ratio-based AI models.")
+    parser.add_argument("--samples", type=int, default=300, help="Number of samples to use for training/val")
+    parser.add_argument("--epochs", type=int, default=15, help="Number of training epochs")
+    args = parser.parse_args()
+    
+    run_comparison(n_samples=args.samples, epochs=args.epochs)
